@@ -8,7 +8,7 @@
 #define Internal_u32 unsigned int
 #define Internal_i16 short
 #define Internal_u16 unsigned short
-#define Internal_i8	 char
+#define Internal_i8  char
 #define Internal_u8  unsigned char
 #define Internal_f32 float
 #define Internal_f64 double
@@ -49,12 +49,12 @@ enum {
 	typedef		signed		char			PW(i8);
 	typedef		unsigned	short			PW(u16);
 	typedef		signed		short			PW(i16);
-	typedef		unsigned	int				PW(u32);
-	typedef		signed		int				PW(i32);
+	typedef		unsigned	int			PW(u32);
+	typedef		signed		int			PW(i32);
 	typedef		unsigned	long long		PW(u64);
 	typedef		signed		long long		PW(i64);
-	typedef					float			PW(f32);
-	typedef					double			PW(f64);
+	typedef				float			PW(f32);
+	typedef				double			PW(f64);
 
 	// Vector types
 	struct PW(v2i) {
@@ -833,7 +833,7 @@ enum {
 	enum LTBInternal(direction) {
 		LTBInternal(D_Left) = -1, LTBInternal(D_Right) = 1
 	}; struct PW(node_direction) {
-		PW(node)*		Node;
+		PW(node)*			Node;
 		enum LTBInternal(direction)	Direction;
 	}; typedef struct PW(node_direction) PW(node_direction);
 
@@ -1026,7 +1026,7 @@ enum {
 	}
 
 	struct PW(AVLFindResult) {
-		PW(node)*		Node;
+		PW(node)*	Node;
 		Internal_u64	Index;
 	}; typedef struct PW(AVLFindResult) PW(AVLFindResult);
 
@@ -1079,7 +1079,7 @@ enum {
 	
 
 	struct PW(AVLDeleteResult) {
-		PW(node)*				Node;
+		PW(node)*		Node;
 		PW(type_for_node_key)	Key;
 	}; typedef struct PW(AVLDeleteResult) PW(AVLDeleteResult);
 
