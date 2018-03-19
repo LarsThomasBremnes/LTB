@@ -1,4 +1,3 @@
-
 #pragma once
 
 #define LTBInternal(n) __L_T_B_INTERNAL_##n
@@ -797,6 +796,11 @@ enum {
 		wise anything from 5 to 70 could be fine. Test and measure for your use case.
 		The more keys, the more memory efficient you'll be, though the performance
 		degrades as the amount of keys exceeds 100.
+
+		There's two failure policies for AVLFind() and AVLDelete(). The standard one is to
+		fail loudly, but you can #define LTB_AVL_FailQuietly before including the file to
+		make the functions return rather than crash when, for instance, you've passed a
+		null pointer as the tree.
 	*/
 
 	enum { LTBInternal(AVLHeightLimit) = 64 };
@@ -834,7 +838,7 @@ enum {
 	enum LTBInternal(direction) {
 		LTBInternal(D_Left) = -1, LTBInternal(D_Right) = 1
 	}; struct PW(node_direction) {
-		PW(node)*		Node;
+		PW(node)* Node;
 		enum LTBInternal(direction)	Direction;
 	}; typedef struct PW(node_direction) PW(node_direction);
 
@@ -847,11 +851,18 @@ enum {
 	};
 
 	void PW(AVLInsert)(type_for_node_key Key, PW(tree)* Tree) {
+		
+		#ifdef LTB_AVL_FailQuietly
 		if (!Tree) {
 			return;
-		} if (Tree->MaxNodeCount == Tree->CurNodeCount) {
+		}
+		#else
+		if (Tree->MaxNodeCount == Tree->CurNodeCount) {
 			DebugBreak(); // Need to expand the node array for the tree
-		} if (!Tree->Root) {
+		} 
+		#endif
+
+		if (!Tree->Root) {
 			Tree->Root = Tree->Nodes + Tree->CurNodeCount++;
 			Tree->Root->Lower = Key;
 			Tree->Root->KeyCount++;
@@ -886,7 +897,8 @@ enum {
 				Internal_u64 i = Cur->KeyCount - 1;
 				while 
 				(
-				R == AVLComparison_FirstParamIsSmaller && 
+				R == AVLComparison_FirstParamIsSmaller
+				&& 
 				i != LTBInternal(MaxU64)
 				)
 				{
@@ -1083,8 +1095,8 @@ enum {
 		return (PW(AVLFindResult)) { 0, 0 };
 	}
 
-	Internal_u64 LTBInternal(RestoreAVLShapeDeletion)(PW(node)** ParentOfNeedsBalancing, PW(tree)* Tree);
 
+	Internal_u64 LTBInternal(RestoreAVLShapeDeletion)(PW(node)** ParentOfNeedsBalancing, PW(tree)* Tree);
 	
 
 	struct PW(AVLDeleteResult) {
