@@ -773,6 +773,8 @@ enum {
 		A typical prelude to including could be:
 
 
+		typedef long long type_for_node_key;
+
 		void AVLCompare(type_for_node_key A, type_for_node_key B, int* R);
 
 		#define LTB_AVL
@@ -858,8 +860,12 @@ enum {
 		}
 		#else
 		if (Tree->MaxNodeCount == Tree->CurNodeCount) {
-			DebugBreak(); // Need to expand the node array for the tree
-		} 
+			((int*) 0)[0] = 1; // Need to expand the node array for the tree
+		}
+
+		if (Key == 0) {
+			((int*) 0)[0] = 1; // FATAL ERROR
+		}
 		#endif
 
 		if (!Tree->Root) {
@@ -876,7 +882,7 @@ enum {
 
 		Internal_u64 Height = 0, RetracingIndex = 0;
 		PW(node)* Cur = Tree->Root;
-		while (Cur) {
+		for (;;) {
 			if (Cur->Balance) {
 				RetracingIndex = Height;
 			} 
@@ -886,7 +892,7 @@ enum {
 			if (Cur->KeyCount < AVLKeysPerNode) {
 				//Cur->Keys[Cur->KeyCount++] = Key;
 
-				#ifdef LTB_AVLMacroCompare
+				#ifdef LTB_AVL_MacroCompare
 				enum PW(AVLCompareResult) R;
 				AVLCompare(Key, Cur->Keys[Cur->KeyCount - 1], R);
 				#else
@@ -904,7 +910,7 @@ enum {
 				{
 					Cur->Keys[i + 1] = Cur->Keys[i];
 					i--;
-					#ifdef LTB_AVLMacroCompare
+					#ifdef LTB_AVL_MacroCompare
 					AVLCompare(Key, Cur->Keys[i], R);
 					#else
 					AVLCompare(Key, Cur->Keys[i], &R);
@@ -915,7 +921,7 @@ enum {
 				return;
 			}
 			
-			#ifdef LTB_AVLMacroCompare
+			#ifdef LTB_AVL_MacroCompare
 			enum PW(AVLCompareResult) LowerCompare, UpperCompare;
 			AVLCompare(Key, Cur->Lower, LowerCompare);
 			AVLCompare(Key, Cur->Upper, UpperCompare);
@@ -950,14 +956,14 @@ enum {
 			} else {
 				Internal_u64 i = 1;
 				type_for_node_key Temp;
-				#ifdef LTB_AVLMacroCompare
+				#ifdef LTB_AVL_MacroCompare
 				AVLCompare(Key, Cur->Keys[i], LowerCompare);
 				#else
 				AVLCompare(Key, Cur->Keys[i], &LowerCompare);
 				#endif
 				while (LowerCompare == PW(AVLComparison_FirstParamIsLarger)) {
 					i++;
-					#ifdef LTB_AVLMacroCompare
+					#ifdef LTB_AVL_MacroCompare
 					AVLCompare(Key, Cur->Keys[i], LowerCompare);
 					#else
 					AVLCompare(Key, Cur->Keys[i], &LowerCompare);
@@ -1053,7 +1059,7 @@ enum {
 		PW(node)* Cur = Tree->Root;
 
 		while (Cur) {
-			#ifdef LTB_AVLMacroCompare
+			#ifdef LTB_AVL_MacroCompare
 				enum PW(AVLCompareResult) LowerCompare, UpperCompare;
 				AVLCompare(Key, Cur->Lower, LowerCompare);
 				if (Cur->Upper) {
@@ -1077,7 +1083,7 @@ enum {
 				Cur = Cur->Right;
 			} else {
 				for (Internal_u64 i = 0; i < Cur->KeyCount; i++) {
-					#ifdef LTB_AVLMacroCompare
+					#ifdef LTB_AVL_MacroCompare
 						AVLCompare(Key, Cur->Keys[i], LowerCompare);
 					#else
 						AVLCompare(Key, Cur->Keys[i], &LowerCompare);
@@ -1092,7 +1098,11 @@ enum {
 			}
 		}
 
+		#ifdef __cplusplus
+		return{0, 0};
+		#else
 		return (PW(AVLFindResult)) { 0, 0 };
+		#endif
 	}
 
 
@@ -1119,7 +1129,7 @@ enum {
 		Tree->KeyCount--; // Come hell or high water, we will definitely remove that key
 
 
-		#ifdef LTB_AVLMacroCompare
+		#ifdef LTB_AVL_MacroCompare
 		enum PW(AVLCompareResult) LowerCompare, UpperCompare;
 		AVLCompare(Key, Cur->Lower, LowerCompare);
 		AVLCompare(Key, Cur->Upper, UpperCompare);
@@ -1133,7 +1143,7 @@ enum {
 
 			Previous[Height].Node = Cur;
 
-			#ifdef LTB_AVLMacroCompare
+			#ifdef LTB_AVL_MacroCompare
 			enum PW(AVLCompareResult) LowerCompare, UpperCompare;
 			AVLCompare(Key, Cur->Lower, LowerCompare);
 			if (Cur->Upper) {
@@ -1156,7 +1166,7 @@ enum {
 				Cur = Cur->Right;
 			} else {
 				for (Internal_u64 i = 0; i < Cur->KeyCount; i++) {
-					#ifdef LTB_AVLMacroCompare
+					#ifdef LTB_AVL_MacroCompare
 					AVLCompare(Key, Cur->Keys[i], LowerCompare);
 					#else
 					AVLCompare(Key, Cur->Keys[i], &LowerCompare);
@@ -1189,8 +1199,11 @@ enum {
 			}
 		}
 
+		#ifdef __cplusplus
+		return {0, 0};
+		#else
 		return (PW(AVLDeleteResult)) { 0, 0 };
-
+		#endif
 		NodeNeedsToBeDeleted:
 
 		PW(node)* Prev = Height ? Previous[Height - 1].Node : 0;
@@ -1636,7 +1649,7 @@ enum {
 	}
 
 
-	void LTBInternal(FindHeight)(PW(node)* Node, Internal_i64* Height, Internal_i64 Depth) {
+	void LTBInternal(FindHeight)(PW(node)* Node, Internal_u64* Height, Internal_i64 Depth) {
 		if (!Node) return;
 		if (!Node->Left && !Node->Right) {
 			if (Depth > *Height) *Height = Depth;
