@@ -1,3 +1,4 @@
+
 #pragma once
 
 #define LTBInternal(n) __L_T_B_INTERNAL_##n
