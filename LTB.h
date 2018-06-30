@@ -14,10 +14,34 @@
 #define Internal_f64 double
 
 #if defined LTB_Windows
+	#define LTBAlloc(ElementType, Count)\
+		(ElementType*) HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY | HEAP_GENERATE_EXCEPTIONS, (sizeof(ElementType))*(Count))
 
-#define LTBAlloc(size) VirtualAlloc(0, (size), MEM_COMMIT, PAGE_READWRITE)
+	#define LTBFree(MemoryAddress)\
+		HeapFree(GetProcessHeap(), 0, MemoryAddress)
 
+	#define LTBCopy(Destination, Source, ElementType, Count)\
+		RtlCopyMemory(Destination, Source, sizeof(ElementType)*(Count))
+#else
+	#if defined _INC_STDLIB || defined LTB_CRT
+		#define LTBAlloc(ElementType, Count) calloc((Count), sizeof(ElementType))
+
+		#define LTBFree(MemoryAddress) free(MemoryAddress)
+
+		#define LTBCopy(Destination, Source, ElementType, Count)\
+			memcpy(Destination, Source, sizeof(ElementType)*(Count))
+	#else
+		#if defined LTB_DefinedOwnAllocator
+			#define LTBAlloc(ElementType, Count) LTB_OwnAllocator(ElementType, Count)
+
+			#define LTBFree(MemoryAddress) LTB_OwnFree(MemoryAddress)
+
+			#define LTBCopy(Destination, Source, ElementType, Count) LTB_OwnCopy
+		#endif
+	#endif
 #endif
+
+
 
 #ifdef LTB_Prefix
 	#define PW(name) LTB_##name
@@ -55,6 +79,141 @@ enum {
 	typedef		signed		long long		PW(i64);
 	typedef					float			PW(f32);
 	typedef					double			PW(f64);
+
+
+	Internal_f64 F64Average(Internal_f64* A, Internal_u64 Length) {
+		Internal_f64 Sum = 0;
+		Internal_u64 i = 0;
+		for (; i < (Length - 7); i += 8) {
+			Sum += A[i];
+			Sum += A[i + 1];
+			Sum += A[i + 2];
+			Sum += A[i + 3];
+			Sum += A[i + 4];
+			Sum += A[i + 5];
+			Sum += A[i + 6];
+			Sum += A[i + 7];
+		} for (; i < Length; i++) {
+			Sum += A[i];
+		}
+		return Sum/Length;
+	}
+
+	Internal_u64 U64Average(Internal_u64* A, Internal_u64 Length) {
+		Internal_u64 Sum = 0;
+		Internal_u64 i = 0;
+		for (; i < (Length - 7); i += 8) {
+			Sum += A[i];
+			Sum += A[i + 1];
+			Sum += A[i + 2];
+			Sum += A[i + 3];
+			Sum += A[i + 4];
+			Sum += A[i + 5];
+			Sum += A[i + 6];
+			Sum += A[i + 7];
+		} for (; i < Length; i++) {
+			Sum += A[i];
+		}
+		return Sum/Length;
+	}
+
+	// Returns how many slots were used to store the number. Closed interval [0, 8], where 0 is only if you pass 0.
+	Internal_u64 PW(U8ToStringInBinary)(Internal_u8 Number, Internal_u8* String) {
+		Internal_u64 i = 8;
+		while (Number) {
+			String[--i] = '0' + (Number & 1);
+			Number >>= 1;
+		}
+		return 8 - i;
+	}
+
+	// Returns how many slots were used to store the number. Closed interval [0, 16], where 0 is only if you pass 0.
+	Internal_u64 PW(U16ToStringInBinary)(Internal_u16 Number, Internal_u8* String) {
+		Internal_u64 i = 16;
+		while (Number) {
+			String[--i] = '0' + (Number & 1);
+			Number >>= 1;
+		}
+		return 16 - i;
+	}
+
+	// Returns how many slots were used to store the number. Closed interval [0, 32], where 0 is only if you pass 0.
+	Internal_u64 PW(U32ToStringInBinary)(Internal_u32 Number, Internal_u8* String) {
+		Internal_u64 i = 32;
+		while (Number) {
+			String[--i] = '0' + (Number & 1);
+			Number >>= 1;
+		}
+		return 32 - i;
+	}
+
+	// Returns how many slots were used to store the number. Closed interval [0, 64], where 0 is only if you pass 0.
+	Internal_u64 PW(U64ToStringInBinary)(Internal_u64 Number, Internal_u8* String) {
+		Internal_u64 i = 64;
+		while (Number) {
+			String[--i] = '0' + (Number & 1);
+			Number >>= 1;
+		}
+		return 64 - i;
+	}
+
+	// Returns how many slots were used to store the number. Closed interval [0, 2], where 0 is only if you pass 0.
+	Internal_u64 PW(U8ToStringInHex)(Internal_u8 Number, Internal_u8* String) {
+		static Internal_u8 Hexits[16] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+		Internal_u64 i = 2;
+		while (Number) {
+			String[--i] = Hexits[Number & 0xF];
+			Number >>= 4;
+		}
+		return 2 - i;
+	}
+
+	// Returns how many slots were used to store the number. Closed interval [0, 4], where 0 is only if you pass 0.
+	Internal_u64 PW(U16ToStringInHex)(Internal_u16 Number, Internal_u8* String) {
+		static Internal_u8 Hexits[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+		Internal_u64 i = 4;
+		while (Number) {
+			String[--i] = Hexits[Number & 0xF];
+			Number >>= 4;
+		}
+		return 4 - i;
+	}
+
+	// Returns how many slots were used to store the number. Closed interval [0, 8], where 0 is only if you pass 0.
+	Internal_u64 PW(U32ToStringInHex)(Internal_u32 Number, Internal_u8* String) {
+		static Internal_u8 Hexits[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+		Internal_u64 i = 8;
+		while (Number) {
+			String[--i] = Hexits[Number & 0xF];
+			Number >>= 4;
+		}
+		return 8 - i;
+	}
+
+	// Returns how many slots were used to store the number. Closed interval [0, 16], where 0 is only if you pass 0.
+	Internal_u64 PW(U64ToStringInHex)(Internal_u64 Number, Internal_u8* String) {
+		static Internal_u8 Hexits[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+		Internal_u64 i = 16;
+		while (Number) {
+			String[--i] = Hexits[Number & 0xF];
+			Number >>= 4;
+		}
+		return 16 - i;
+	}
+
+	void PW(F64ToStringInBinary)(Internal_f64 Number, Internal_u8* String) {
+		Internal_f64 a = Number;
+		Internal_u64 b;
+		LTBCopy(&b, &a, f64, 1);
+		PW(U64ToStringInBinary)(b, String);
+	}
+
+	void PW(F64ToStringInHex)(Internal_f64 Number, Internal_u8* String) {
+		Internal_f64 a = Number;
+		Internal_u64 b;
+		LTBCopy(&b, &a, f64, 1);
+		PW(U64ToStringInHex)(b, String);
+	}
 
 	// Vector types
 	struct PW(v2i) {
@@ -379,6 +538,8 @@ enum {
 		else return LTBInternal(MaxU64);
 	}
 
+	
+	#if defined LTBCRT || (defined _INC_STDLIB && defined _INC_STRING)
 	Internal_u64 PW(StablePartition)(Internal_i64* a, Internal_u8* b, Internal_u64 Length) {
 		#define RecursionFloor 70
 		if (Length > RecursionFloor) {
@@ -415,7 +576,7 @@ enum {
 		} 
 		return k;
 	}
-
+	#endif
 
 
 
@@ -465,7 +626,13 @@ enum {
 	}
 	#undef T
 
-
+	#if defined LTBCRT || defined _INC_STDLIB
+	double RoundToPosInf(double a) {
+		double Integer = floor(a);
+		double Fraction = a - Integer;
+		return copysign(a + (Fraction >= 0.5), a);
+	}
+	#endif
 
 	float rsqrtf32(float number) {
 		Internal_u32 i; 
@@ -699,14 +866,18 @@ enum {
 
 	///////// Stringifying an integer /////////
 
-	Internal_u64 PW(U64DigitCount)(Internal_u64 Number) {
+	#define ArrayLength(a) (sizeof((a))/sizeof((a)[0]))
+
+	#define StrLenNot0Term(S) (ArrayLength(S) - 1)
+
+	Internal_u64 PW(DigitCountU64)(Internal_u64 Number) {
 		Internal_u64 Digits = 1;
 		while (Number /= 10) Digits++;
 		return Digits;
 	}
 
-	void PW(U64ToString) (Internal_u8* Buffer, Internal_u64 Number) {
-		Internal_u64 Digits = PW(U64DigitCount)(Number);
+	u64 PW(U64ToString) (Internal_u64 Number, Internal_u8* Buffer) {
+		Internal_u64 Digits = PW(DigitCountU64)(Number);
 		Internal_u64 i = 0;
 		if (Digits == 20) { // If 20 digits, most significant must be 1
 			Buffer[i] = '1';
@@ -717,18 +888,110 @@ enum {
 			Buffer[i++] = (Internal_u8) ('0' + (Number / a));
 			Number -= (Number / a)*a; // subtracts most significant digit
 		}
+		return i;
 	}
 
-	Internal_u64 PW(StringLength)(Internal_u8* Array) {
-		Internal_u64 Result = 0;
-		while (*Array++) Result++;
-		return Result;
+	#define AppendAllocatorCore(Type)\
+		Type* Start;\
+		Type* Offset;\
+		Internal_u64 ElementsAllocated
+
+	struct PW(append_allocator_u8) {
+		AppendAllocatorCore(Internal_u8);
+	}; typedef struct PW(append_allocator_u8) PW(append_allocator_u8);
+
+	struct PW(append_allocator_u16) {
+		AppendAllocatorCore(Internal_u16);
+	}; typedef struct PW(append_allocator_u16) PW(append_allocator_u16);
+
+	struct PW(append_allocator_u32) {
+		AppendAllocatorCore(Internal_u32);
+	}; typedef struct PW(append_allocator_u32) PW(append_allocator_u32);
+
+	struct PW(append_allocator_u64) {
+		AppendAllocatorCore(Internal_u64);
+	}; typedef struct PW(append_allocator_u64) PW(append_allocator_u64);
+
+	#define AppendAllocatorSetupCore(Type, ElementCount)\
+		Allocator.Start = LTBAlloc(Type, ElementCount);\
+		Allocator.Offset = Allocator.Start;\
+		Allocator.ElementsAllocated = ElementCount
+
+	PW(append_allocator_u8) SetupU8AppendAllocator(u64 ElementCount) {
+		PW(append_allocator_u8) Allocator;
+		AppendAllocatorSetupCore(Internal_u8, ElementCount);
+		return Allocator;
 	}
 
+	PW(append_allocator_u16) SetupU16AppendAllocator(u64 ElementCount) {
+		PW(append_allocator_u16) Allocator;
+		AppendAllocatorSetupCore(Internal_u16, ElementCount);
+		return Allocator;
+	}
+
+	PW(append_allocator_u32) SetupU32AppendAllocator(u64 ElementCount) {
+		PW(append_allocator_u32) Allocator;
+		AppendAllocatorSetupCore(Internal_u32, ElementCount);
+		return Allocator;
+	}
+
+	PW(append_allocator_u64) SetupU64AppendAllocator(u64 ElementCount) {
+		PW(append_allocator_u64) Allocator;
+		AppendAllocatorSetupCore(Internal_u64, ElementCount);
+		return Allocator;
+	}
+
+	inline u64 PW(CalcCurElemsInAppendAllocatorU8)(PW(append_allocator_u8) Allocator) {
+		return Allocator.Offset - Allocator.Start;
+	}
+
+	inline u64 PW(CalcCurElemsInAppendAllocatorU16)(PW(append_allocator_u16) Allocator) {
+		return (Allocator.Offset - Allocator.Start) / sizeof(Allocator.Start[0]);
+	}
+
+	inline u64 PW(CalcCurElemsInAppendAllocatorU32)(PW(append_allocator_u32) Allocator) {
+		return (Allocator.Offset - Allocator.Start) / sizeof(Allocator.Start[0]);
+	}
+
+	inline u64 PW(CalcCurElemsInAppendAllocatorU64)(PW(append_allocator_u64) Allocator) {
+		return (Allocator.Offset - Allocator.Start) / sizeof(Allocator.Start[0]);
+	}
+
+
+	// Must capture the return value
+	void PW(AppendString)(Internal_u8* String, Internal_u64 Length, PW(append_allocator_u8)* Allocator) {
+		Internal_u8* End = String + Length;
+		for (; String < End;) {
+			Allocator->Offset[0] = String[0];
+			Allocator->Offset++; String++;
+		}
+	}
+
+	// Intended for "" strings, so it excises the 0 termination which will give wrong results for non-0 terminated strings
+	#ifdef LTB_Prefix
+		#define LTB_AppendStaticString(String, Allocator) PW(AppendString)((unsigned char*)(String), (ArrayLength((String)) - 1), Allocator)
+	#else 
+		#define AppendStaticString(String, Allocator) PW(AppendString)((unsigned char*)(String), (ArrayLength((String)) - 1), Allocator)
+	#endif
+
+	u64 PW(AppendU64ToString)(Internal_u64 Number, PW(append_allocator_u8)* Allocator) {
+		Internal_u64 Digits = PW(DigitCountU64)(Number);
+		Internal_u64 i = 0;
+		if (Digits == 20) { // If 20 digits, most significant must be 1
+			Allocator->Offset[i] = '1';
+			i++; Digits--;
+			Number -= PW(ExponentiateU64)(10, Digits);
+		} Internal_u64 a = PW(ExponentiateU64)(10, Digits);
+		while (a /= 10) {
+			Allocator->Offset[i++] = (Internal_u8) ('0' + (Number / a));
+			Number -= (Number / a)*a; // subtracts most significant digit
+		}
+		Allocator->Offset += i;
+		return i;
+	}
 
 	////////// Arrays //////////
 
-	#define ArrayLength(a) (sizeof((a))/sizeof((a)[0]))
 
 	void PW(ClearArrayU8)(Internal_u8* Array, Internal_u64 Count) {
 		for (Internal_u64 j = 0; j < Count; j++) {Array[j] = 0;}
@@ -810,7 +1073,6 @@ enum {
 	struct PW(node) {
 		struct PW(node)* Left;
 		struct PW(node)* Right;
-		Internal_u64	 KeyCount;
 		union {
 			type_for_node_key Keys[AVLKeysPerNode];
 			struct {
@@ -819,7 +1081,8 @@ enum {
 				type_for_node_key Upper;
 			};
 		};
-		Internal_i16			Balance;
+		Internal_u64	KeyCount;
+		Internal_i16	Balance;
 	}; typedef struct PW(node) PW(node);
 
 
